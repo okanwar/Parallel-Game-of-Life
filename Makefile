@@ -1,11 +1,13 @@
-# Declare CC and CFLAGS variables
+CC = gcc
+CFLAGS = -g -Wall -Wextra -std=c11
 
-# create an "all" rule that makes the gol program
+TARGETS = gol
 
-# create a "gol" rule that compiles your source code into an executable named gol
+all: $(TARGETS)
 
-# create a "clean" rule to remove temporary files
+gol: gol.c
+	$(CC) $(CFLAGS) -o $@ $^
 
-# delete the following rule after you complete your makefile
-lala:
-	@echo "You haven't implemented your Makefile yet..."
+clean:
+	$(RM) $(TARGETS)
+
