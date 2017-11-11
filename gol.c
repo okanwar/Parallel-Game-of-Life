@@ -1,7 +1,7 @@
 /**
  * File: gol.c
  *
- * Starter code for COMP280 Project 7 ("Game of Life")
+ * Starter code for COMP280 Project 6 ("Game of Life")
  *
  * Replace this comment with your top-level comment with your name and a
  * description of this program.
