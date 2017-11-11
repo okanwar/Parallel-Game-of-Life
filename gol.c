@@ -1,13 +1,20 @@
 /**
- * Starting point for project 7 ("Game of Life")
- * Replace this with your top-level comment.
+ * File: gol.c
+ *
+ * Starter code for COMP280 Project 7 ("Game of Life")
+ *
+ * Replace this comment with your top-level comment with your name and a
+ * description of this program.
  */
+
+#define _XOPEN_SOURCE 700
 
 #include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
 #include <sys/time.h>
 #include <string.h>
+
 
 int main(int argc, char *argv[]) {
 
