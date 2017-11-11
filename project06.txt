@@ -1,6 +1,8 @@
-COMP 280 - Project 07 (Game of Life)
+COMP 280 - Project 06 (Game of Life)
 
-1. Authors:
+1. Author:
+	- Name: 
+	- Email: 
 
 2. Total Hours Spent on Project:
 
