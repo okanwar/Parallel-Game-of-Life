@@ -15,22 +15,40 @@
 #include <sys/time.h>
 #include <string.h>
 
+struct Coord {
+	int x;
+	int y;
+};
+
+typedef struct Coord Coord;
+
+struct LiveSpots {
+	int num_live_spots;
+	Coord *coords;
+};
+
+typedef struct LiveSpots LiveSpots;
+
+
+
 /*
  * Forward declerations
  */
-void readConfig(char *config_file, int *iterations, int *live_spots);
-void initBoard( int *board, int *live_spots);
+void readConfig( char *config_file, int *iterations, LiveSpots *live_spots, int *rows, int *cols);
+char * initBoard( LiveSpots *live_spots, int rows, int cols);
 void printArr( int *arr, int size );
 
 
 int main(int argc, char *argv[]) {
 
 	int ret;
+	int rows, cols;
 	int verbose = 0;
 	char *config_file = NULL;
-	int *live_spots;
-	int *board;
+	char *board;
 	int iterations = 0;
+
+	LiveSpots live_spots;
 	
 	// Step 1: Parse command line args (I recommend using getopt again).
 	// You need to support the "-c" and "-v" options for the basic requirements.
@@ -73,9 +91,9 @@ int main(int argc, char *argv[]) {
 	}
 
 	//Read config file
-	readConfig( config_file, &iterations, live_spots);
+	readConfig( config_file, &iterations, &live_spots, &rows, &cols);
 	//Initialize board
-	initBoard( board, live_spots);
+	board = initBoard( &live_spots, rows, cols);
 	//Simulate GOL
 	//
 
@@ -87,18 +105,19 @@ int main(int argc, char *argv[]) {
 /*
  *
  */
-void initBoard( int *board, int *live_spots){
+char * initBoard( LiveSpots *live_spots, int rows, int cols){
+	char *board;
+	board = calloc( rows*cols, sizeof(char) );
 
+	//Fill in live spots
 }
 
 
  /*
  *
  */
-void readConfig(char *config_file, int *iterations, int *live_spots){
+void readConfig(char *config_file, int *iterations, LiveSpots *live_spots, int *rows, int *cols){
 	
-	int rows = 0;
-	int cols = 0;
 	int ret;
 	char scan[50];
 	int num = 0;
@@ -119,11 +138,11 @@ void readConfig(char *config_file, int *iterations, int *live_spots){
 		switch( count ){
 			
 			case 1: 		//Set first input to rows
-				rows = num;
+				*rows = num;
 				count++;
 				break;
 			case 2:			//Set second input to cols
-				cols = num;
+				*cols = num;
 				count++;
 				break;
 			case 3:			//Set third input to iterations
@@ -132,12 +151,13 @@ void readConfig(char *config_file, int *iterations, int *live_spots){
 				break;
 			case 4:			//Fourth input is for number of live spots
 				//Initialize live_spots
-				num_live_spots = num;
-				live_spots = calloc ( num_live_spots*2, sizeof(int) );
+				live_spots->num_live_spots = num;
+				live_spots->coords = calloc ( num_live_spots, sizeof(Coord) );
 				count++;
 				break;
 			default: 		//Rest of the arguments are live spots so store them
-				live_spots[count-5] = num;
+//TODO: Fix to fill in x and y
+				live_spots->coords[count-5].x= num;
 				count++;
 				break;
 		}
@@ -145,10 +165,10 @@ void readConfig(char *config_file, int *iterations, int *live_spots){
 
 }
 
-void printArr( int *arr, int size ){
+void printLiveSpots( LiveSpots *ls){
 	
-	for( int i = 0; i < size; i++ ){
-		printf("%d\n", arr[i] );
+	for( int i = 0; i < ls->num_live_spots; i++ ){
+		printf("%d,%d\n", ls->coords[i].x, ls->coords[i].y );
 	}
 }
 
