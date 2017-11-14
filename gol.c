@@ -15,6 +15,14 @@
 #include <sys/time.h>
 #include <string.h>
 
+/*
+ * Forward declerations
+ */
+void readConfig(char *config_file, int *iterations, int *live_spots);
+void initBoard( int *board, int *live_spots);
+void printArr( int *arr, int size );
+
+
 int main(int argc, char *argv[]) {
 
 	int ret;
@@ -22,6 +30,7 @@ int main(int argc, char *argv[]) {
 	char *config_file = NULL;
 	int *live_spots;
 	int *board;
+	int iterations = 0;
 	
 	// Step 1: Parse command line args (I recommend using getopt again).
 	// You need to support the "-c" and "-v" options for the basic requirements.
@@ -64,7 +73,9 @@ int main(int argc, char *argv[]) {
 	}
 
 	//Read config file
-
+	readConfig( config_file, &iterations, live_spots);
+	//Initialize board
+	initBoard( board, live_spots);
 	//Simulate GOL
 	//
 
@@ -72,19 +83,74 @@ int main(int argc, char *argv[]) {
 	return 0;
 }
 
+
 /*
  *
  */
-void readConfig(char *config_file, int iterations, int *board, int *live_spots){
-	
-	int rows = 0;
-	int cols = 0;
-
-	//Read in from config file
+void initBoard( int *board, int *live_spots){
 
 }
 
 
+ /*
+ *
+ */
+void readConfig(char *config_file, int *iterations, int *live_spots){
+	
+	int rows = 0;
+	int cols = 0;
+	int ret;
+	char scan[50];
+	int num = 0;
+	int count = 1;
+	int num_live_spots;
+
+	//Read in from config file
+	FILE *cfg = NULL;
+	if( (cfg = fopen( config_file, "r")) == NULL ){
+		printf("Could not open file: %s\n", config_file);
+		return;
+	}
+
+	while( ret = fscanf( cfg, "%s", scan) > 0){
+		//Convert string to int
+		num = atoi(scan);
+		//Use input from config
+		switch( count ){
+			
+			case 1: 		//Set first input to rows
+				rows = num;
+				count++;
+				break;
+			case 2:			//Set second input to cols
+				cols = num;
+				count++;
+				break;
+			case 3:			//Set third input to iterations
+				*iterations = num;
+				count++;
+				break;
+			case 4:			//Fourth input is for number of live spots
+				//Initialize live_spots
+				num_live_spots = num;
+				live_spots = calloc ( num_live_spots*2, sizeof(int) );
+				count++;
+				break;
+			default: 		//Rest of the arguments are live spots so store them
+				live_spots[count-5] = num;
+				count++;
+				break;
+		}
+	}	
+
+}
+
+void printArr( int *arr, int size ){
+	
+	for( int i = 0; i < size; i++ ){
+		printf("%d\n", arr[i] );
+	}
+}
 
 
 
