@@ -15,28 +15,23 @@
 #include <sys/time.h>
 #include <string.h>
 
-struct Coord {
-	int x;
-	int y;
+
+struct Board {
+	int rows;
+	int cols;
+	int size;
+	int live_spots;
+	int *arr;
 };
 
-typedef struct Coord Coord;
-
-struct LiveSpots {
-	int num_live_spots;
-	Coord *coords;
-};
-
-typedef struct LiveSpots LiveSpots;
-
-
+typedef struct Board Board;
 
 /*
  * Forward declerations
  */
-void readConfig( char *config_file, int *iterations, LiveSpots *live_spots, int *rows, int *cols);
-char * initBoard( LiveSpots *live_spots, int rows, int cols);
-void printArr( int *arr, int size );
+void readConfig( char *config_file, int *iterations, Board *board);
+void  initBoard( Board *board);
+void printBoard( Board *board );
 
 
 int main(int argc, char *argv[]) {
@@ -45,10 +40,9 @@ int main(int argc, char *argv[]) {
 	int rows, cols;
 	int verbose = 0;
 	char *config_file = NULL;
-	char *board;
+	Board board;
 	int iterations = 0;
 
-	LiveSpots live_spots;
 	
 	// Step 1: Parse command line args (I recommend using getopt again).
 	// You need to support the "-c" and "-v" options for the basic requirements.
@@ -91,9 +85,9 @@ int main(int argc, char *argv[]) {
 	}
 
 	//Read config file
-	readConfig( config_file, &iterations, &live_spots, &rows, &cols);
-	//Initialize board
-	board = initBoard( &live_spots, rows, cols);
+	readConfig( config_file, &iterations, &board);
+
+	printBoard(&board);
 	//Simulate GOL
 	//
 
@@ -105,24 +99,26 @@ int main(int argc, char *argv[]) {
 /*
  *
  */
-char * initBoard( LiveSpots *live_spots, int rows, int cols){
-	char *board;
-	board = calloc( rows*cols, sizeof(char) );
+void initBoard( Board *board){
 
-	//Fill in live spots
+	board->size = board->rows * board->cols;
+	board->arr = calloc( board->size, sizeof(int) );
+
 }
 
 
  /*
  *
  */
-void readConfig(char *config_file, int *iterations, LiveSpots *live_spots, int *rows, int *cols){
+void readConfig(char *config_file, int *iterations, Board *board){
 	
 	int ret;
 	char scan[50];
 	int num = 0;
 	int count = 1;
+	int index = 0;
 	int num_live_spots;
+	int x,y;
 
 	//Read in from config file
 	FILE *cfg = NULL;
@@ -138,38 +134,57 @@ void readConfig(char *config_file, int *iterations, LiveSpots *live_spots, int *
 		switch( count ){
 			
 			case 1: 		//Set first input to rows
-				*rows = num;
+				board->rows = num;
 				count++;
 				break;
 			case 2:			//Set second input to cols
-				*cols = num;
+				board->cols = num;
 				count++;
 				break;
 			case 3:			//Set third input to iterations
 				*iterations = num;
+
+				//Initialize board now that enough information is given
+				initBoard(board);
 				count++;
 				break;
 			case 4:			//Fourth input is for number of live spots
 				//Initialize live_spots
-				live_spots->num_live_spots = num;
-				live_spots->coords = calloc ( num_live_spots, sizeof(Coord) );
+				board->live_spots = num;
 				count++;
 				break;
-			default: 		//Rest of the arguments are live spots so store them
-//TODO: Fix to fill in x and y
-				live_spots->coords[count-5].x= num;
+			default: 		//Rest are live spots		
+				
+				//Alternate storing reads in x and y based on even or odd
+				if( count % 2 != 0 ){ //Odd count
+					x = num;
+				} else {
+					y = num;
+					//once we have a full coord put it in, index++
+					board->arr[ (x * board->cols) + y ] = 1;
+					index++;
+				}
 				count++;
 				break;
 		}
 	}	
 
+
 }
 
-void printLiveSpots( LiveSpots *ls){
+
+
+void printBoard( Board *board ){
 	
-	for( int i = 0; i < ls->num_live_spots; i++ ){
-		printf("%d,%d\n", ls->coords[i].x, ls->coords[i].y );
-	}
+	for(int i = 0; i < board->size; i++){
+		printf(" %d ",board->arr[i]);
+		
+		//New line if row has been filled
+		if( (i % (board->cols) == 0)  && i!=0){
+			printf("\n");
+		}
+	}	
+	printf("\n");
 }
 
 
