@@ -175,15 +175,16 @@ void readConfig(char *config_file, int *iterations, Board *board){
 
 
 void printBoard( Board *board ){
-	
+
 	for(int i = 0; i < board->size; i++){
-		printf(" %d ",board->arr[i]);
-		
+		printf(" %d ", board->arr[i] );
+
 		//New line if row has been filled
-		if( (i % (board->cols) == 0)  && i!=0){
+		if( ( (i+1) % board->cols == 0)  && i!=0){
 			printf("\n");
 		}
 	}	
+
 	printf("\n");
 }
 
