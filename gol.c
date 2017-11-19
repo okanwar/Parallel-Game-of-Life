@@ -22,6 +22,8 @@ struct Board {
 	int size;
 	int live_spots;
 	int *arr;
+	int *die;
+	int *revive;
 };
 
 typedef struct Board Board;
@@ -32,6 +34,8 @@ typedef struct Board Board;
 void readConfig( char *config_file, int *iterations, Board *board);
 void  initBoard( Board *board);
 void printBoard( Board *board );
+void update( Board *board);
+void timeval_subtract (struct timeval *result, struct timeval *end, struct timeval *start);
 
 
 int main(int argc, char *argv[]) {
@@ -42,6 +46,7 @@ int main(int argc, char *argv[]) {
 	char *config_file = NULL;
 	Board board;
 	int iterations = 0;
+	struct timeval begin_time, end_time, result_time;
 
 	
 	// Step 1: Parse command line args (I recommend using getopt again).
@@ -81,20 +86,69 @@ int main(int argc, char *argv[]) {
 	//Check if config_file has been set
 	if( config_file == NULL ){
 		printf("Error: No config file!\n");
-		exit(0);
+		exit(1);
 	}
 
 	//Read config file
 	readConfig( config_file, &iterations, &board);
 
-	printBoard(&board);
 	//Simulate GOL
-	//
+	for( int i = 0; i < iterations; i++ ){
+		
+	//Log time 
+	gettimeofday(&begin_time, NULL);
 
+		//Print if verbose
+		if( verbose ){
+			printf("Time step:%d/%d \n", i, iterations);
+			printBoard(&board);
+			usleep(100000);
+			system( "clear" );
+
+		}
+
+		//Update board
+		update(&board);
+
+		//
+	}
+	
+	//Log time
+	gettimeofday(&end_time, NULL);
+
+	//Compute total time
+	timeval_subtract( &result_time , &end_time, &begin_time );
+	printf("Total time:%ld.%0.6ld\n", result_time.tv_sec, result_time.tv_usec);
+
+	//Free memory
 
 	return 0;
 }
 
+/*
+ *
+ */
+void update(Board *board){
+	
+	//iterate over all spots
+	for( int i = 0; i < board->size; i++ ){
+		
+		//Check rules
+
+		//Rule 1
+
+	}
+}
+
+int rule_one(Board *board, int x){
+	int neighbor_count = 0;
+
+	//Check neighbors
+	for( int i = x; i < x+3; i++ ){
+		
+	//TODO: Finish rules, then updates the actual board	
+	}
+}
 
 /*
  *
@@ -187,6 +241,28 @@ void printBoard( Board *board ){
 
 	printf("\n");
 }
+
+void timeval_subtract (struct timeval *result, struct timeval *end, struct timeval *start) {
+	
+	// Perform the carry for the later subtraction by updating start.
+	if (end->tv_usec < start->tv_usec) {
+        int nsec = (start->tv_usec - end->tv_usec) / 1000000 + 1;
+	    start->tv_usec -= 1000000 * nsec;
+		start->tv_sec += nsec;
+	}	
+	if (end->tv_usec - start->tv_usec > 1000000) {
+	    int nsec = (end->tv_usec - start->tv_usec) / 1000000;
+        start->tv_usec += 1000000 * nsec;
+        start->tv_sec -= nsec;
+	}
+
+	// Compute the time remaining to wait.tv_usec is certainly positive.
+	result->tv_sec = end->tv_sec - start->tv_sec;
+    result->tv_usec = end->tv_usec - start->tv_usec;
+	
+}
+
+
 
 
 
