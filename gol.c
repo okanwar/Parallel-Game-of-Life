@@ -144,12 +144,40 @@ void update(Board *board){
 	for( int i = 0; i < board->size; i++ ){
 		//Check rules
 
-		//Rule 1
-		search(board, i, 1);
-	}
+		switch( board->arr[i] ){
+			
+			case 0:  //Cell is dead
+				
+				//Check if it can be revived (Rule 3)
+				if( search( board, i, 1) == 3 ){ 	//Cell can be revived
+					board->revive[i] = 1;
+				}
+				break;
+			case 1:  //Cell is alive
 
+				//Check if it dies to loneliness or overpopulation (Rule 1&2)
+				if( search( board, i, 1) <= 1 ){	//Dies from loneliness
+					board->die[i] = 1;
+				} else if( search( board, i, 1) >= 4 ){    //Dies from overpopulation
+					board->die[i] = 1;
+				}
+				break;
+			default:
+				printf("Error: Cell is neither alive nor dead\n");
+				break;
+		};
+	}
+	
+	//Update actual board with alive and dead
+	
+	//Clear alive and dead boards
 }
 
+
+
+/*
+ * A method to search in a 3x3 grid around a point
+ */
 int search(Board *board, int index, int search_val){
 	
 	int start_c, start_r, d_index, dd_index;
@@ -188,6 +216,7 @@ int search(Board *board, int index, int search_val){
 
 			//Get 2d index of where to look and convert to 1d index, then
 			//check val
+			if( i == 1 && j == 1) { continue; } // The point we are searching around
 			r += i;
 			c += j;
 			if( board->arr[convertOneD( r, c, board->cols )] == search_val ){
@@ -215,7 +244,8 @@ void initBoard( Board *board){
 
 	board->size = board->rows * board->cols;
 	board->arr = calloc( board->size, sizeof(int) );
-
+	board->die = calloc( board->size, sizeof(int) );
+	board->revive = calloc( board->size, sizeof(int) );
 }
 
 
