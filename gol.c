@@ -40,6 +40,8 @@ int ruleOne(Board *board, int x);
 int search(Board *board, int index, int search_val);
 int mod(int val, int mod);
 int convertOneD( int r, int c, int cols);
+void clearBoard(int *board, int size);
+void updateBoard( Board *board, int mode );
 
 
 int main(int argc, char *argv[]) {
@@ -98,7 +100,7 @@ int main(int argc, char *argv[]) {
 	//Log time
 	gettimeofday(&begin_time, NULL);
 	//Simulate GOL
-	for( int i = 0; i < iterations; i++ ){
+	for( int i = 0; i < 1; i++ ){
 		
 	//Log time 
 
@@ -139,27 +141,30 @@ int mod(int val, int mod){
  *
  */
 void update(Board *board){
-	
+	int neighbors = 0;
 	//iterate over all spots
 	for( int i = 0; i < board->size; i++ ){
 		//Check rules
-
+		neighbors = search(board, i, 1);
 		switch( board->arr[i] ){
 			
 			case 0:  //Cell is dead
 				
 				//Check if it can be revived (Rule 3)
-				if( search( board, i, 1) == 3 ){ 	//Cell can be revived
+				if( neighbors == 3 ){
 					board->revive[i] = 1;
+					printf("cell revived at %d with %d neighbors\n", i, neighbors);
 				}
 				break;
 			case 1:  //Cell is alive
-
+				printf("alive cell at %d\n" ,i);
 				//Check if it dies to loneliness or overpopulation (Rule 1&2)
-				if( search( board, i, 1) <= 1 ){	//Dies from loneliness
+				if( neighbors < 2 ){
 					board->die[i] = 1;
-				} else if( search( board, i, 1) >= 4 ){    //Dies from overpopulation
+					printf("cell died at %d with %d neighbors\n", i, neighbors);
+				} else if (neighbors > 3){
 					board->die[i] = 1;
+					printf("cell dief at %d with %d neighbors\n", i, neighbors);
 				}
 				break;
 			default:
@@ -169,11 +174,56 @@ void update(Board *board){
 	}
 	
 	//Update actual board with alive and dead
-	
+ 	updateBoard( board, 0);
+	updateBoard( board, 1);	
 	//Clear alive and dead boards
+	//clearBoard( board->die, board->size );
+	//clearBoard( board->revive, board->size );
 }
 
+/*
+ * A method used to update the board given a kill or revive command
+ */
+void updateBoard( Board *board, int mode ){
+	int *read_board;
+	
+	//Check mode and set board to read from
+	if( mode == 0 ){
+		read_board = board->die;
+	} else if( mode == 1){
+		read_board = board->revive;
+	} else {
+		printf("Invalid mode, mode must be either 0 (kill) or 1 (revive)\n");
+	}
+	
+	//Update board according to read board
+	for( int i = 0; i < board->size; i++ ){
+		if( read_board[i] == 1 ){
+			
+			switch( mode ){
+				case 0: //Kill Cell
+					board->arr[i] = 0;
+					break;
+				case 1: //Revive Cell
+					board->arr[i] = 1;
+					break;
+				default:
+					printf("Error: Case is invalid mode\n");
+					break;
+			};
+		}
+	}
+}
 
+/*
+ * A method used to reset a board to all 0's
+ */
+void clearBoard(int *board, int size){
+
+	for(int i = 0; i < size; i++){
+		board[i] = 0;
+	}
+}
 
 /*
  * A method to search in a 3x3 grid around a point
@@ -327,7 +377,26 @@ void printBoard( Board *board ){
 			printf("\n");
 		}
 	}	
+/*
+	printf("\n Revive\n");
+	for(int i = 0; i < board->size; i++){
+		printf(" %d ", board->revive[i] );
 
+		//New line if row has been filled
+		if( ( (i+1) % (board->cols) == 0)  && i!=0){
+			printf("\n");
+		}
+	}	
+	printf("\nDie\n");
+	for(int i = 0; i < board->size; i++){
+		printf(" %d ", board->die[i] );
+
+		//New line if row has been filled
+		if( ( (i+1) % (board->cols) == 0)  && i!=0){
+			printf("\n");
+		}
+	}	
+*/	
 	printf("\n");
 }
 
