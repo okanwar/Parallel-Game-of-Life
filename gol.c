@@ -36,6 +36,10 @@ void  initBoard( Board *board);
 void printBoard( Board *board );
 void update( Board *board);
 void timeval_subtract (struct timeval *result, struct timeval *end, struct timeval *start);
+int ruleOne(Board *board, int x);
+int search(Board *board, int index, int search_val);
+int mod(int val, int mod);
+int convertOneD( int r, int c, int cols);
 
 
 int main(int argc, char *argv[]) {
@@ -91,12 +95,12 @@ int main(int argc, char *argv[]) {
 
 	//Read config file
 	readConfig( config_file, &iterations, &board);
-
+	//Log time
+	gettimeofday(&begin_time, NULL);
 	//Simulate GOL
 	for( int i = 0; i < iterations; i++ ){
 		
 	//Log time 
-	gettimeofday(&begin_time, NULL);
 
 		//Print if verbose
 		if( verbose ){
@@ -121,8 +125,14 @@ int main(int argc, char *argv[]) {
 	printf("Total time:%ld.%0.6ld\n", result_time.tv_sec, result_time.tv_usec);
 
 	//Free memory
+	printf("-2 mod 10 = %d\n", mod(-2, 10));
+	printf(" 50 mod 18 = %d\n", mod(50, 18));
 
 	return 0;
+}
+
+int mod(int val, int mod){
+	return ((val % mod) + mod) % mod;
 }
 
 /*
@@ -132,23 +142,71 @@ void update(Board *board){
 	
 	//iterate over all spots
 	for( int i = 0; i < board->size; i++ ){
-		
 		//Check rules
 
 		//Rule 1
-
+		search(board, i, 1);
 	}
+
 }
 
-int rule_one(Board *board, int x){
-	int neighbor_count = 0;
+int search(Board *board, int index, int search_val){
+	
+	int start_c, start_r, d_index, dd_index;
+	int count = 0;
 
-	//Check neighbors
-	for( int i = x; i < x+3; i++ ){
-		
-	//TODO: Finish rules, then updates the actual board	
+	//Convert index to start_c, start_r
+	
+	//Row
+	if( index < board->cols ){ //start_r == 0
+		start_r = 0;
+	} else {
+		start_r = index / board->rows;
+	}	
+
+	//Col
+	if( mod(index, board->rows) == 0 ){ //Col 0
+		start_c = 0;
+	} else if( index < board->cols){ //Index in row 0
+		start_c = index;
+	} else { 
+		start_c = index % (start_r * board->cols);
 	}
+
+	// 2 X X
+	// X 1 X
+	// X X X
+	//start_c and start_r are at 1, move them to 2 and wrap if necessary
+	start_c = mod( start_c-1, board->cols );
+	start_r = mod( start_r-1, board->cols );
+
+	//Search for specified val
+	int r = start_r;
+	int c = start_c;
+	for( int i = 0; i < 3; i++ ){ //Iterate over rows 3 times
+		for( int j = 0; j < 3; j++ ){ //Iterate over cols 3 times
+
+			//Get 2d index of where to look and convert to 1d index, then
+			//check val
+			r += i;
+			c += j;
+			if( board->arr[convertOneD( r, c, board->cols )] == search_val ){
+				count++;
+			}
+		}		
+	}
+
+	return count;
 }
+
+
+/*
+ * Converts a given row and col number in 2d to its 1d index
+ */
+int convertOneD( int r, int c, int cols){
+	return (r * cols) + c;
+}
+
 
 /*
  *
@@ -215,6 +273,7 @@ void readConfig(char *config_file, int *iterations, Board *board){
 				} else {
 					y = num;
 					//once we have a full coord put it in, index++
+					printf("adding a live spot at (%d,%d)\n", x, y);
 					board->arr[ (x * board->cols) + y ] = 1;
 					index++;
 				}
@@ -234,7 +293,7 @@ void printBoard( Board *board ){
 		printf(" %d ", board->arr[i] );
 
 		//New line if row has been filled
-		if( ( (i+1) % board->cols == 0)  && i!=0){
+		if( ( (i+1) % (board->cols) == 0)  && i!=0){
 			printf("\n");
 		}
 	}	
