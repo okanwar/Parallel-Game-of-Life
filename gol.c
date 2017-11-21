@@ -392,7 +392,7 @@ void readConfig(char *config_file, int *iterations, Board *board){
 					y = num;
 					//once we have a full coord put it in, index++
 					printf("adding a live spot at (%d,%d)\n", x, y);
-					board->arr[ (x * board->cols) + y ] = 1;
+					board->arr[ (y * board->cols) + x ] = 1;
 					index++;
 				}
 				count++;
