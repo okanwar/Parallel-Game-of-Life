@@ -1,13 +1,13 @@
 COMP 280 - Project 06 (Game of Life)
 
 1. Author:
-	- Name: 
-	- Email: 
+	- Name:Michael Dana 
+	- Email: mdana@sandiego.edu
 
-2. Total Hours Spent on Project:
+2. Total Hours Spent on Project: 12
 
-3. Did you attempt the advanced component?
+3. Did you attempt the advanced component? yes
 
-4. Project Bucks Used:
+4. Project Bucks Used: 0
 
 5. (Optional) Additional Comments:

@@ -14,6 +14,9 @@
 #include <unistd.h>
 #include <sys/time.h>
 #include <string.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netdb.h>
 
 
 struct Board {
@@ -45,6 +48,11 @@ void updateBoard( Board *board, int mode );
 int getRow(int index, int num_col);
 int getCol(int index, int num_col);
 void freeBoard(Board *board);
+int open_clientfd( char *hostname, char *port);
+char* getConfig( char *config );
+void getList();
+char *concat( char *s1, char *s2);
+void setConfig( char *config_file, Board *board, int *iterations);
 
 int main(int argc, char *argv[]) {
 
@@ -56,7 +64,7 @@ int main(int argc, char *argv[]) {
 	struct timeval begin_time, end_time, result_time;
 	int n_flag = 0;
 	int c_flag = 0;
-
+	int l_flag = 0;
 	
 	while (( ret = getopt( argc, argv, "vc:ln:")) != -1){
 
@@ -71,11 +79,12 @@ int main(int argc, char *argv[]) {
 				break;
 			case 'l':
 				//Get files from server
-				printf("getting files from server\n");
+				l_flag = 1;
 				break;
 			case 'n':
 				//Run from server file
 				n_flag = 1;
+				config_file = getConfig( optarg );
 				printf("running from server file\n");
 				break;
 			default:
@@ -91,14 +100,23 @@ int main(int argc, char *argv[]) {
 		exit(1);
 	}
 
-	//Check if config_file has been set
+	// -l option specified
+	if( l_flag ){
+		getList();
+		exit(0);
+	}
+
+	//Read config file
+		//Check if config_file has been set
 	if( config_file == NULL ){
 		printf("Error: No config file!\n");
 		exit(1);
 	}
-
-	//Read config file
-	readConfig( config_file, &iterations, &board);
+	if( c_flag ){
+		readConfig( config_file, &iterations, &board);
+	} else {
+		setConfig(config_file, &board, &iterations);
+	}
 	//Log time
 	gettimeofday(&begin_time, NULL);
 	//Simulate GOL
@@ -131,6 +149,9 @@ int main(int argc, char *argv[]) {
 
 	//Free memory
 	freeBoard(&board);
+	if(n_flag){
+		free(config_file);
+	}
 
 	return 0;
 }
@@ -391,7 +412,6 @@ void readConfig(char *config_file, int *iterations, Board *board){
 				} else {
 					y = num;
 					//once we have a full coord put it in, index++
-					printf("adding a live spot at (%d,%d)\n", x, y);
 					board->arr[ (y * board->cols) + x ] = 1;
 					index++;
 				}
@@ -459,7 +479,184 @@ void timeval_subtract (struct timeval *result, struct timeval *end, struct timev
 	
 }
 
+/*
+ * A function to eastablish connection to the server
+ *
+ * @param hostname The hostname of the server
+ * @param port The port of the server
+ */
+int open_clientfd( char *hostname, char *port){
+	int clientfd;
+	struct addrinfo hints, *listp, *p;
+
+	// Gets a list of potential server adresses
+	memset(&hints, 0, sizeof(struct addrinfo));
+	hints.ai_socktype = SOCK_STREAM; 	//Open a connection
+	hints.ai_flags = AI_NUMERICSERV; 	//using a numeric port arg
+	hints.ai_flags |= AI_ADDRCONFIG; 	
+	getaddrinfo(hostname, port, &hints, &listp);
+
+	//Walk list for a successful connection
+	for( p = listp; p; p = p->ai_next ){
+		//Create socket descriptor
+		if((clientfd = socket(p->ai_family, p->ai_socktype, p->ai_protocol)) < 0 )
+			continue; //Socket failed try next
+
+		//Connecting to server
+		if( connect(clientfd, p->ai_addr, p->ai_addrlen) != -1 )
+		   break; 	//Success
+		close(clientfd);	//Connect failed try next
+	}
+	
+	//Clean up
+	freeaddrinfo(listp);
+	if(!p){	//All connects failed
+		return -1;
+	} else {
+	   return clientfd;
+	}	   
+
+}
+/*
+ * A function used to get the configuration settings from the server
+ *
+ * @param config The config file to read from server
+ */
+char* getConfig( char *config ){
+	char *hostname = "comp280.sandiego.edu";
+	char *port = "9181";
+	char *result = malloc( 100 * sizeof(int));
+	int sockfd;
+	int ret;
+	char *msg;
+	char *str1;
+
+	//Make msg
+	str1 = "get ";
+	char *str3 = malloc( strlen(str1) + strlen(config) + 4);
+	strcpy(str3 ,str1);
+	strcat(str3 ,config);
+	msg = str3;
+	
+	if( (sockfd = open_clientfd(hostname, port)) == -1 ){
+		printf("Error: could not connect\n");
+		return NULL;
+	} else {
+		//Send msg
+		ret = send( sockfd, msg, strlen(msg), 0 );
+		if( ret == -1 ){
+			printf("Error msg not sent\n");
+			return NULL;
+		} else if ( ret != (int)strlen(msg)){
+			printf("Full msg not sent\n");
+		} else {
+			//Recieve msg
+			if( (recv( sockfd, result, 6000, 0)) > 0 ){
+				printf("\n%s\n", result);
+				close(sockfd);
+				free(msg);
+				return result;
+			} else {
+				printf("Error: message not recieved!\n");
+				return NULL;
+			}
+		}
+	}
+	printf("Error config not found\n");
+	return NULL;
+}
+
+/*
+ * A function used to get the list of configuration files on the server
+ * comp280.sandiego.edu
+ */
+void getList(){
+	char *hostname = "comp280.sandiego.edu";
+	char *port = "9181";
+	char *msg = "list";
+	char result[1000];
+	int sockfd;
+
+	if( (sockfd = open_clientfd(hostname, port)) == -1 ){
+		printf("Error: could not connect\n");
+		return;
+	} else {
+		//Send msg
+		if( (send( sockfd, msg, sizeof(msg), 0)) != sizeof(msg) ){
+			printf("msg not fully sent\n");
+		} else {
+			//Recieve msg
+			if( (recv( sockfd, result, 1000, 0)) > 0 ){
+				printf("\n%s\n", result);
+				close(sockfd);
+			} else {
+				printf("Error: message not recieved!\n");
+				return;
+			}
+		}
+	}
 
 
+}
 
 
+/*
+ * A function used to begin simulation with a string of config settings
+ *
+ * @param config_file The srtin containing the config
+ * @param board The board were the simulation takes place
+ * @param iterations Pointer to the number of iterations
+ */
+void setConfig( char *config_file , Board *board, int *iterations){
+	int val, x ,y;
+	int count = 1;
+	char *tok;
+	char *del;
+	del = "\n";
+	tok = strtok(config_file,del);
+	while( tok != NULL ){
+		printf("%s,%d\n", tok, count);
+		val = strtol(tok, NULL, 10);
+
+		switch( count ){
+			case 1:
+				board->rows = val;
+				count++;
+				break;
+			case 2:
+				board->cols = val;
+				count++;
+				break;
+			case 3:
+				*iterations = val;
+				initBoard(board);
+				count++;
+				break;
+			case 4:
+			//Initialize live spots
+				printf("livespots:%d\n", val);
+				board->live_spots = val;
+				count++;
+				break;
+			default:
+
+				x = strtol(&tok[0], NULL, 10);
+				y = strtol(&tok[2], NULL, 10);
+				board->arr[ (y*board->cols) + x ] = 1;
+
+				/*
+				//Alternate storing reads in x and y based on even or odd
+				if( count % 2 != 0 ){ //Odd count
+					x = val;	
+				} else {
+					y = val;
+					//once we have a full coord put it in, index++
+					printf("adding a live spot at (%d,%d)\n", x, y);
+					board->arr[ (y * board->cols) + x ] = 1;
+				} */
+				count++;
+				break;
+		};	
+		tok = strtok(NULL,del);	
+	}
+}		
