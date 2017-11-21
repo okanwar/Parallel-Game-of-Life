@@ -42,12 +42,12 @@ int mod(int val, int mod);
 int convertOneD( int r, int c, int cols);
 void clearBoard(int *board, int size);
 void updateBoard( Board *board, int mode );
-
+int getRow(int index, int num_col);
+int getCol(int index, int num_col);
 
 int main(int argc, char *argv[]) {
 
 	int ret;
-	int rows, cols;
 	int verbose = 0;
 	char *config_file = NULL;
 	Board board;
@@ -55,24 +55,7 @@ int main(int argc, char *argv[]) {
 	struct timeval begin_time, end_time, result_time;
 
 	
-	// Step 1: Parse command line args (I recommend using getopt again).
-	// You need to support the "-c" and "-v" options for the basic requirements.
-	// The advanced requirements require you to add "-l" and "-n" options.
-	
-	// Step 2: Read in the configuration file and use it to initialize your game
-	// board. Write a function to do this for you.
-	
-	// Step 3: Start your timer
-	
-	// Step 4: Simulate for the required number of steps.
-	// Again, you should put this in its own function
-	
-	// Step 5: Stop your timer, calculate amount of time simulation ran for and
-	// then print that out.
-	
-	//Get arguments from command line
-	
-	while (( ret = getopt( argc, argv, "vc:")) != -1){
+	while (( ret = getopt( argc, argv, "vcl:")) != -1){
 
 		switch(ret){
 		
@@ -81,6 +64,9 @@ int main(int argc, char *argv[]) {
 				break;
 			case 'v':
 				verbose = 1;
+				break;
+			case 'l':
+				//Get files from server
 				break;
 			default:
 				printf("Default\n");
@@ -100,7 +86,7 @@ int main(int argc, char *argv[]) {
 	//Log time
 	gettimeofday(&begin_time, NULL);
 	//Simulate GOL
-	for( int i = 0; i < 1; i++ ){
+	for( int i = 1; i <= iterations; i++ ){
 		
 	//Log time 
 
@@ -109,14 +95,15 @@ int main(int argc, char *argv[]) {
 			printf("Time step:%d/%d \n", i, iterations);
 			printBoard(&board);
 			usleep(100000);
-			system( "clear" );
+			if( i != iterations ){ 
+				system( "clear" );
+			}
 
 		}
 
 		//Update board
 		update(&board);
-
-		//
+		
 	}
 	
 	//Log time
@@ -124,17 +111,28 @@ int main(int argc, char *argv[]) {
 
 	//Compute total time
 	timeval_subtract( &result_time , &end_time, &begin_time );
-	printf("Total time:%ld.%0.6ld\n", result_time.tv_sec, result_time.tv_usec);
+	printf("Total time:%ld.%.6ld\n", result_time.tv_sec, result_time.tv_usec);
 
 	//Free memory
-	printf("-2 mod 10 = %d\n", mod(-2, 10));
-	printf(" 50 mod 18 = %d\n", mod(50, 18));
 
 	return 0;
 }
 
 int mod(int val, int mod){
-	return ((val % mod) + mod) % mod;
+	int ret = val % mod;
+	if(ret < 0){
+		ret = (ret+mod) % mod;
+	}
+	return ret;
+}
+
+int getRow(int index, int num_col){
+	return index / num_col;
+}
+
+int getCol(int index, int num_col){
+	int row = index / num_col;
+	return ( index - (row*num_col));
 }
 
 /*
@@ -152,19 +150,18 @@ void update(Board *board){
 				
 				//Check if it can be revived (Rule 3)
 				if( neighbors == 3 ){
+					//Update revive board with cell
 					board->revive[i] = 1;
-					printf("cell revived at %d with %d neighbors\n", i, neighbors);
 				}
 				break;
 			case 1:  //Cell is alive
-				printf("alive cell at %d\n" ,i);
 				//Check if it dies to loneliness or overpopulation (Rule 1&2)
 				if( neighbors < 2 ){
+					//Update death board with cell death
 					board->die[i] = 1;
-					printf("cell died at %d with %d neighbors\n", i, neighbors);
 				} else if (neighbors > 3){
+					//Update death board with cell death
 					board->die[i] = 1;
-					printf("cell dief at %d with %d neighbors\n", i, neighbors);
 				}
 				break;
 			default:
@@ -177,8 +174,8 @@ void update(Board *board){
  	updateBoard( board, 0);
 	updateBoard( board, 1);	
 	//Clear alive and dead boards
-	//clearBoard( board->die, board->size );
-	//clearBoard( board->revive, board->size );
+	clearBoard( board->die, board->size );
+	clearBoard( board->revive, board->size );
 }
 
 /*
@@ -230,49 +227,27 @@ void clearBoard(int *board, int size){
  */
 int search(Board *board, int index, int search_val){
 	
-	int start_c, start_r, d_index, dd_index;
+	int start_c, start_r;
 	int count = 0;
 
 	//Convert index to start_c, start_r
+	start_c = mod( (getCol( index, board->cols) - 1), board->cols);	
+	start_r = mod( (getRow( index, board->cols) - 1), board->rows);
 	
-	//Row
-	if( index < board->cols ){ //start_r == 0
-		start_r = 0;
-	} else {
-		start_r = index / board->rows;
-	}	
-
-	//Col
-	if( mod(index, board->rows) == 0 ){ //Col 0
-		start_c = 0;
-	} else if( index < board->cols){ //Index in row 0
-		start_c = index;
-	} else { 
-		start_c = index % (start_r * board->cols);
-	}
-
-	// 2 X X
-	// X 1 X
-	// X X X
-	//start_c and start_r are at 1, move them to 2 and wrap if necessary
-	start_c = mod( start_c-1, board->cols );
-	start_r = mod( start_r-1, board->cols );
-
-	//Search for specified val
 	int r = start_r;
 	int c = start_c;
-	for( int i = 0; i < 3; i++ ){ //Iterate over rows 3 times
-		for( int j = 0; j < 3; j++ ){ //Iterate over cols 3 times
-
-			//Get 2d index of where to look and convert to 1d index, then
-			//check val
-			if( i == 1 && j == 1) { continue; } // The point we are searching around
-			r += i;
-			c += j;
-			if( board->arr[convertOneD( r, c, board->cols )] == search_val ){
+	int curr_index = 0;
+	for( int i = 0; i < 3; i++ ){ //Iterate over cols
+		c = mod(start_c+i, board->cols);
+		for( int j = 0; j < 3; j++ ){
+			r= mod(start_r+j, board->rows);
+			curr_index = convertOneD( r, c, board->cols);
+			if( curr_index == index){	//Index we are searching around 
+				continue; 
+			} else if ( board->arr[curr_index] == search_val ){
 				count++;
 			}
-		}		
+		}
 	}
 
 	return count;
@@ -309,7 +284,6 @@ void readConfig(char *config_file, int *iterations, Board *board){
 	int num = 0;
 	int count = 1;
 	int index = 0;
-	int num_live_spots;
 	int x,y;
 
 	//Read in from config file
@@ -319,7 +293,7 @@ void readConfig(char *config_file, int *iterations, Board *board){
 		return;
 	}
 
-	while( ret = fscanf( cfg, "%s", scan) > 0){
+	while( (ret = fscanf( cfg, "%s", scan)) > 0){
 		//Convert string to int
 		num = atoi(scan);
 		//Use input from config
@@ -377,26 +351,6 @@ void printBoard( Board *board ){
 			printf("\n");
 		}
 	}	
-/*
-	printf("\n Revive\n");
-	for(int i = 0; i < board->size; i++){
-		printf(" %d ", board->revive[i] );
-
-		//New line if row has been filled
-		if( ( (i+1) % (board->cols) == 0)  && i!=0){
-			printf("\n");
-		}
-	}	
-	printf("\nDie\n");
-	for(int i = 0; i < board->size; i++){
-		printf(" %d ", board->die[i] );
-
-		//New line if row has been filled
-		if( ( (i+1) % (board->cols) == 0)  && i!=0){
-			printf("\n");
-		}
-	}	
-*/	
 	printf("\n");
 }
 
