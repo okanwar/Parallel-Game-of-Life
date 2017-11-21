@@ -44,6 +44,7 @@ void clearBoard(int *board, int size);
 void updateBoard( Board *board, int mode );
 int getRow(int index, int num_col);
 int getCol(int index, int num_col);
+void freeBoard(Board *board);
 
 int main(int argc, char *argv[]) {
 
@@ -53,26 +54,41 @@ int main(int argc, char *argv[]) {
 	Board board;
 	int iterations = 0;
 	struct timeval begin_time, end_time, result_time;
+	int n_flag = 0;
+	int c_flag = 0;
 
 	
-	while (( ret = getopt( argc, argv, "vcl:")) != -1){
+	while (( ret = getopt( argc, argv, "vc:ln:")) != -1){
 
 		switch(ret){
 		
 			case 'c':
 				config_file = optarg;
+				c_flag = 1;
 				break;
 			case 'v':
 				verbose = 1;
 				break;
 			case 'l':
 				//Get files from server
+				printf("getting files from server\n");
+				break;
+			case 'n':
+				//Run from server file
+				n_flag = 1;
+				printf("running from server file\n");
 				break;
 			default:
-				printf("Default\n");
+				printf("Invalid Use!\n");
 				exit(0);
 
 		}
+	}
+	
+	//Make sure only -n or only -c options are set
+	if( n_flag == 1 && c_flag == 1 ){
+		printf("Error: -c and -n options specified!\n");
+		exit(1);
 	}
 
 	//Check if config_file has been set
@@ -114,10 +130,17 @@ int main(int argc, char *argv[]) {
 	printf("Total time:%ld.%.6ld\n", result_time.tv_sec, result_time.tv_usec);
 
 	//Free memory
+	freeBoard(&board);
 
 	return 0;
 }
 
+/*
+ * A function to perform modular arithmetic
+ * 
+ * @param val The value to do modular arithmetic with
+ * @param mod The value val with be modded by
+ */
 int mod(int val, int mod){
 	int ret = val % mod;
 	if(ret < 0){
@@ -126,17 +149,33 @@ int mod(int val, int mod){
 	return ret;
 }
 
+/*
+ * A function to get the row value of a 1D index
+ *
+ * @param index The one dimensional array index value
+ * @param num_col The number of columns in the 2d array
+ */
 int getRow(int index, int num_col){
 	return index / num_col;
 }
 
+/*
+ * A function to get the column value of a 1D index
+ *
+ * @param index The one dimensional array index value
+ * @param num_col The number of columns in the 2D array
+ */
 int getCol(int index, int num_col){
 	int row = index / num_col;
 	return ( index - (row*num_col));
 }
 
 /*
+ * A function used to update the board, this is where the rules of the GOL will
+ * be checked for
  *
+ * @param board A reference to the board where the game simulation is taking
+ * place
  */
 void update(Board *board){
 	int neighbors = 0;
@@ -179,7 +218,11 @@ void update(Board *board){
 }
 
 /*
- * A method used to update the board given a kill or revive command
+ * A method used to update the board given a kill or revive command, this
+ * function will kill and revive cells
+ *
+ * @param board The board where the simulation is taking place
+ * @param mode The mode, either 0 for kill or 1 for revive
  */
 void updateBoard( Board *board, int mode ){
 	int *read_board;
@@ -214,6 +257,9 @@ void updateBoard( Board *board, int mode ){
 
 /*
  * A method used to reset a board to all 0's
+ *
+ * @param board A reference to an integer array representing the board
+ * @param size The size of the array
  */
 void clearBoard(int *board, int size){
 
@@ -223,7 +269,11 @@ void clearBoard(int *board, int size){
 }
 
 /*
- * A method to search in a 3x3 grid around a point
+ * A method to search in a 3x3 grid around a point for a specified value
+ *
+ * @param board A reference to the board where the simulation is taking place
+ * @param index The index where the search will be centered around
+ * @param search_val The value that is going to be searched for
  */
 int search(Board *board, int index, int search_val){
 	
@@ -256,6 +306,10 @@ int search(Board *board, int index, int search_val){
 
 /*
  * Converts a given row and col number in 2d to its 1d index
+ *
+ * @param r The row number from a 2D array
+ * @param c The column number from a 2D array
+ * @param cols The number of columns in the 2D array
  */
 int convertOneD( int r, int c, int cols){
 	return (r * cols) + c;
@@ -263,7 +317,10 @@ int convertOneD( int r, int c, int cols){
 
 
 /*
+ * A function to allocate space for the board where the simulation is taking
+ * place
  *
+ * @param board A reference to the board where the simulation is taking place
  */
 void initBoard( Board *board){
 
@@ -275,8 +332,15 @@ void initBoard( Board *board){
 
 
  /*
- *
- */
+  * A function the takes in a config file and sets up the simulation
+  *
+  * @param config_file The name of the config file containing the simulations
+  * setup
+  * @param iterations A reference to a variable where the number of iterations
+  * is going to be stored
+  * @param board A reference to the board where the simulation is going to
+  * take place
+  */
 void readConfig(char *config_file, int *iterations, Board *board){
 	
 	int ret;
@@ -339,8 +403,22 @@ void readConfig(char *config_file, int *iterations, Board *board){
 
 }
 
+/*
+ * A function used to free the allocated memory of a board
+ *
+ * @param board A reference to the board that memory is going to be freed from
+ */
+void freeBoard(Board *board){
+	free( board->arr );
+	free( board->revive );
+	free( board->die );
+}
 
-
+/*
+ * A function used to print out the board
+ *
+ * @param board A reference to the board to print
+ */
 void printBoard( Board *board ){
 
 	for(int i = 0; i < board->size; i++){
@@ -354,6 +432,13 @@ void printBoard( Board *board ){
 	printf("\n");
 }
 
+/*
+ * Subtracts two timevals, storing the result in a third timeval
+ *
+ * @param result The result of the subtraction
+ * @param end The end time
+ * @param start The start time
+ */
 void timeval_subtract (struct timeval *result, struct timeval *end, struct timeval *start) {
 	
 	// Perform the carry for the later subtraction by updating start.
