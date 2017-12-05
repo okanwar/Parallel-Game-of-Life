@@ -1,0 +1,10 @@
+Author: Michael Dana
+
+All basic requirements met.
+All advanced requirements met.
+
+Notes: 
+- Missing comment at top of file. 
+- Missing "@return" for some non-void functions.
+- Time print out at end doesn't include number of units or units of time (i.e.
+  seconds)
