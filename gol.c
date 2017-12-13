@@ -20,6 +20,7 @@
 
 
 struct Board {
+	int num_threads;
 	int rows;
 	int cols;
 	int size;
@@ -27,6 +28,7 @@ struct Board {
 	int *arr;
 	int *die;
 	int *revive;
+	int *partitions;
 };
 
 typedef struct Board Board;
@@ -53,6 +55,7 @@ char* getConfig( char *config );
 void getList();
 char *concat( char *s1, char *s2);
 void setConfig( char *config_file, Board *board, int *iterations);
+void initPartitions(Board *board);
 
 int main(int argc, char *argv[]) {
 
@@ -66,7 +69,7 @@ int main(int argc, char *argv[]) {
 	int c_flag = 0;
 	int l_flag = 0;
 	
-	while (( ret = getopt( argc, argv, "vc:ln:")) != -1){
+	while (( ret = getopt( argc, argv, "vc:ln:t:")) != -1){
 
 		switch(ret){
 		
@@ -86,6 +89,9 @@ int main(int argc, char *argv[]) {
 				n_flag = 1;
 				config_file = getConfig( optarg );
 				printf("running from server file\n");
+				break;
+			case 't':
+				board.num_threads = strtol( optarg, NULL, 10);
 				break;
 			default:
 				printf("Invalid Use!\n");
@@ -154,6 +160,23 @@ int main(int argc, char *argv[]) {
 	}
 
 	return 0;
+}
+
+void initPartitions(Board *board){
+	int row_num = board->rows / board->num_threads;
+	int remainder = board->rows % board->num_threads;
+	int i = 0;
+	while( remainder != 0  && i < board->num_threads){
+		board->partitions[i] = row_num + 1;
+		remainder--;
+		i++;
+	}
+	while( i < board->num_threads){
+		board->partitions[i] =  row_num;
+		i++;
+	}
+
+
 }
 
 /*
@@ -230,12 +253,14 @@ void update(Board *board){
 		};
 	}
 	
+	/*
 	//Update actual board with alive and dead
  	updateBoard( board, 0);
 	updateBoard( board, 1);	
 	//Clear alive and dead boards
 	clearBoard( board->die, board->size );
 	clearBoard( board->revive, board->size );
+	*/
 }
 
 /*
@@ -344,11 +369,12 @@ int convertOneD( int r, int c, int cols){
  * @param board A reference to the board where the simulation is taking place
  */
 void initBoard( Board *board){
-
 	board->size = board->rows * board->cols;
 	board->arr = calloc( board->size, sizeof(int) );
 	board->die = calloc( board->size, sizeof(int) );
 	board->revive = calloc( board->size, sizeof(int) );
+	board->partitions = calloc( board->num_threads, sizeof(int) );
+	initPartitions(board);
 }
 
 
