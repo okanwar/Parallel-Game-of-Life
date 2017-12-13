@@ -17,6 +17,7 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netdb.h>
+#include <pthread.h>
 
 
 struct Board {
@@ -29,6 +30,8 @@ struct Board {
 	int *die;
 	int *revive;
 	int *partitions;
+	pthread_barrier_t barrier;
+	int print;
 };
 
 typedef struct Board Board;
@@ -37,7 +40,7 @@ typedef struct Board Board;
  * Forward declerations
  */
 void readConfig( char *config_file, int *iterations, Board *board);
-void  initBoard( Board *board);
+void initBoard( Board *board);
 void printBoard( Board *board );
 void update( Board *board);
 void timeval_subtract (struct timeval *result, struct timeval *end, struct timeval *start);
@@ -55,7 +58,9 @@ char* getConfig( char *config );
 void getList();
 char *concat( char *s1, char *s2);
 void setConfig( char *config_file, Board *board, int *iterations);
+void threadFunction (void *arg);
 void initPartitions(Board *board);
+void printThread(void *arg);
 
 int main(int argc, char *argv[]) {
 
@@ -78,6 +83,7 @@ int main(int argc, char *argv[]) {
 				c_flag = 1;
 				break;
 			case 'v':
+				board.print = 1;
 				verbose = 1;
 				break;
 			case 'l':
@@ -160,6 +166,26 @@ int main(int argc, char *argv[]) {
 	}
 
 	return 0;
+}
+
+void threadFunction(void *arg) {
+	struct Board *board = (struct Board*)arg;
+	update(board);
+}
+
+void printThread(void *arg) {
+	struct Board *board = (struct Board*)arg;
+	int a = pthread_barrier_wait(&board->barrier);
+	if(a == PTHREAD_BARRIER_SERIAL_THREAD) {
+		if(board->print) {
+			printf("printing\n");
+		}
+		updateBoard( board, 0);
+		updateBoard( board, 1);
+		//clear alive and dead boards
+		clearBoard( board->die, board->size);
+		clearBoard( board->revive, board->size);
+	}
 }
 
 void initPartitions(Board *board){
@@ -375,6 +401,7 @@ void initBoard( Board *board){
 	board->revive = calloc( board->size, sizeof(int) );
 	board->partitions = calloc( board->num_threads, sizeof(int) );
 	initPartitions(board);
+	pthread_barrier_init(&board->barrier, NULL, board->num_threads);
 }
 
 
