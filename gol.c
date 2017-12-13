@@ -21,6 +21,7 @@
 
 
 struct Board {
+	pthread_barrier_t barrier;
 	int num_threads;
 	int rows;
 	int cols;
@@ -30,7 +31,8 @@ struct Board {
 	int *die;
 	int *revive;
 	int *partitions;
-	pthread_barrier_t barrier;
+	pthread_t *tidAr;
+	pthread_t update_thread;
 	int print;
 };
 
@@ -58,14 +60,15 @@ char* getConfig( char *config );
 void getList();
 char *concat( char *s1, char *s2);
 void setConfig( char *config_file, Board *board, int *iterations);
-void threadFunction (void *arg);
+void* threadFunction (void *arg);
 void initPartitions(Board *board);
-void printThread(void *arg);
+void* printThread(void *arg);
+void createThreads(Board *board);
 
 int main(int argc, char *argv[]) {
 
 	int ret;
-	int verbose = 0;
+	//int verbose = 0;
 	char *config_file = NULL;
 	Board board;
 	int iterations = 0;
@@ -84,7 +87,7 @@ int main(int argc, char *argv[]) {
 				break;
 			case 'v':
 				board.print = 1;
-				verbose = 1;
+	//			verbose = 1;
 				break;
 			case 'l':
 				//Get files from server
@@ -97,7 +100,11 @@ int main(int argc, char *argv[]) {
 				printf("running from server file\n");
 				break;
 			case 't':
-				board.num_threads = strtol( optarg, NULL, 10);
+				if( optarg == NULL ){
+					board.num_threads = 4;
+				} else {
+					board.num_threads = strtol( optarg, NULL, 10);
+				}
 				break;
 			default:
 				printf("Invalid Use!\n");
@@ -131,7 +138,11 @@ int main(int argc, char *argv[]) {
 	}
 	//Log time
 	gettimeofday(&begin_time, NULL);
+
 	//Simulate GOL
+	createThreads(&board);
+
+	/*
 	for( int i = 1; i <= iterations; i++ ){
 		
 	//Log time 
@@ -151,6 +162,7 @@ int main(int argc, char *argv[]) {
 		update(&board);
 		
 	}
+	*/
 	
 	//Log time
 	gettimeofday(&end_time, NULL);
@@ -168,12 +180,22 @@ int main(int argc, char *argv[]) {
 	return 0;
 }
 
-void threadFunction(void *arg) {
-	struct Board *board = (struct Board*)arg;
-	update(board);
+void createThreads(Board *board){
+
+	for( int i = 0; i < board->num_threads; i++){
+		pthread_create( &board->tidAr[i], NULL, threadFunction, board);	
+	}
+	//Create update thread
+	pthread_create( &board->update_thread, NULL, printThread, board);
 }
 
-void printThread(void *arg) {
+void* threadFunction(void *arg) {
+	struct Board *board = (struct Board*)arg;
+	update(board);
+	return (void*) NULL;
+}
+
+void* printThread(void *arg) {
 	struct Board *board = (struct Board*)arg;
 	int a = pthread_barrier_wait(&board->barrier);
 	if(a == PTHREAD_BARRIER_SERIAL_THREAD) {
@@ -186,6 +208,7 @@ void printThread(void *arg) {
 		clearBoard( board->die, board->size);
 		clearBoard( board->revive, board->size);
 	}
+	return (void*) NULL;
 }
 
 void initPartitions(Board *board){
@@ -400,6 +423,7 @@ void initBoard( Board *board){
 	board->die = calloc( board->size, sizeof(int) );
 	board->revive = calloc( board->size, sizeof(int) );
 	board->partitions = calloc( board->num_threads, sizeof(int) );
+	board->tidAr = calloc( board->num_threads, sizeof(pthread_t));
 	initPartitions(board);
 	pthread_barrier_init(&board->barrier, NULL, board->num_threads);
 }
@@ -485,6 +509,8 @@ void freeBoard(Board *board){
 	free( board->arr );
 	free( board->revive );
 	free( board->die );
+	free( board->partitions);
+	free( board->tidAr);
 }
 
 /*
