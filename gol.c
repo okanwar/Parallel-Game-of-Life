@@ -182,21 +182,23 @@ int main(int argc, char *argv[]) {
 
 void createThreads(Board *board){
 
+	//Create update thread
+	pthread_create( &board->update_thread, NULL, printThread, board);
 	for( int i = 0; i < board->num_threads; i++){
 		pthread_create( &board->tidAr[i], NULL, threadFunction, board);	
 	}
-	//Create update thread
-	pthread_create( &board->update_thread, NULL, printThread, board);
 }
 
 void* threadFunction(void *arg) {
 	struct Board *board = (struct Board*)arg;
+	printf("running thread\n");
 	update(board);
 	return (void*) NULL;
 }
 
 void* printThread(void *arg) {
 	struct Board *board = (struct Board*)arg;
+	printf("printing\n");
 	int a = pthread_barrier_wait(&board->barrier);
 	if(a == PTHREAD_BARRIER_SERIAL_THREAD) {
 		if(board->print) {
@@ -207,6 +209,8 @@ void* printThread(void *arg) {
 		//clear alive and dead boards
 		clearBoard( board->die, board->size);
 		clearBoard( board->revive, board->size);
+		pthread_barrier_destroy(&board->barrier);
+		pthread_barrier_init(&board->barrier, NULL, board->num_threads);
 	}
 	return (void*) NULL;
 }
