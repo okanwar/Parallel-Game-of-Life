@@ -22,7 +22,10 @@
 
 struct Board {
 	pthread_barrier_t barrier;
+	pthread_barrier_t print_barrier;
 	int num_threads;
+	int iteration_num;
+	int iterations_total;
 	int rows;
 	int cols;
 	int size;
@@ -141,7 +144,8 @@ int main(int argc, char *argv[]) {
 
 	//Simulate GOL
 	createThreads(&board);
-
+	while( board.iteration_num < board.iterations_total){
+	}
 	/*
 	for( int i = 1; i <= iterations; i++ ){
 		
@@ -177,9 +181,16 @@ int main(int argc, char *argv[]) {
 		free(config_file);
 	}
 
+	printf("iterations%d/%d\n", board.iteration_num, board.iterations_total);
 	return 0;
 }
 
+/*
+ * A function to create all the worker threads
+ *
+ * @param board A pointer to a struct containing  information about the board
+ *
+ */
 void createThreads(Board *board){
 
 	//Create update thread
@@ -189,32 +200,73 @@ void createThreads(Board *board){
 	}
 }
 
+/*
+ * A function for a worker thread to execute, the thread will simulate a given
+ * 	number of rows
+ *
+ * @param arg A pointer to the struct containing information about the board
+ *
+ * @return Returns a null value, no need to return just ends after it has
+ * 	finished its iterations
+ */
 void* threadFunction(void *arg) {
 	struct Board *board = (struct Board*)arg;
-	printf("running thread\n");
-	update(board);
+	while( board->iteration_num < board->iterations_total){
+
+		//Wait for all worker threads and print thread
+		pthread_barrier_wait( &board->barrier);
+
+		//Wait for print thread to finish before updating again
+		pthread_barrier_wait( &board->print_barrier );
+
+		//Update board
+		update(board);
+	}
 	return (void*) NULL;
 }
 
+/*
+ * A function for the print/updating worker thread to run, prints the game
+ * board and update the game board given updates by worker threads
+ *
+ * @param arg A pointer to a struct containing information about the board
+ *
+ * @return Returns a null value, no need to return just prints and updates the
+ * 	board
+ *
+ */
 void* printThread(void *arg) {
 	struct Board *board = (struct Board*)arg;
-	printf("printing\n");
-	int a = pthread_barrier_wait(&board->barrier);
-	if(a == PTHREAD_BARRIER_SERIAL_THREAD) {
+	while ( board-> iteration_num < board->iterations_total ){
+		
+		//Wait for all barrier to finish before printing
+		pthread_barrier_wait( &board->barrier);
+		
+		//Print if possible
 		if(board->print) {
-			printf("printing\n");
+			printf("printing2\n");
 		}
+		board->iteration_num++;
+
+		//Update board
 		updateBoard( board, 0);
 		updateBoard( board, 1);
 		//clear alive and dead boards
 		clearBoard( board->die, board->size);
 		clearBoard( board->revive, board->size);
-		pthread_barrier_destroy(&board->barrier);
-		pthread_barrier_init(&board->barrier, NULL, board->num_threads);
+		
+		//Print has finished so wait
+		pthread_barrier_wait( &board->print_barrier );
 	}
 	return (void*) NULL;
 }
 
+/*
+ * A function to partition the rows for a given number of threads
+ *
+ * @param board A pointer to a struct containing information about the board
+ *
+ */
 void initPartitions(Board *board){
 	int row_num = board->rows / board->num_threads;
 	int remainder = board->rows % board->num_threads;
@@ -429,7 +481,8 @@ void initBoard( Board *board){
 	board->partitions = calloc( board->num_threads, sizeof(int) );
 	board->tidAr = calloc( board->num_threads, sizeof(pthread_t));
 	initPartitions(board);
-	pthread_barrier_init(&board->barrier, NULL, board->num_threads);
+	pthread_barrier_init(&(board->barrier), NULL, board->num_threads+1);
+	pthread_barrier_init(&(board->print_barrier), NULL, board->num_threads+1);
 }
 
 
@@ -475,6 +528,8 @@ void readConfig(char *config_file, int *iterations, Board *board){
 				break;
 			case 3:			//Set third input to iterations
 				*iterations = num;
+				board->iterations_total = num;
+				board->iteration_num = 0;
 
 				//Initialize board now that enough information is given
 				initBoard(board);
