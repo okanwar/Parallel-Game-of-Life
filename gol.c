@@ -82,7 +82,6 @@ void getBounds( int *start_index, int *end_index, int index, Board *board);
 int main(int argc, char *argv[]) {
 
 	int ret;
-	//int verbose = 0;
 	char *config_file = NULL;
 	Board board;
 	int iterations = 0;
@@ -101,7 +100,6 @@ int main(int argc, char *argv[]) {
 				break;
 			case 'v':
 				board.print = 1;
-	//			verbose = 1;
 				break;
 			case 'l':
 				//Get files from server
@@ -150,34 +148,17 @@ int main(int argc, char *argv[]) {
 	} else {
 		setConfig(config_file, &board, &iterations);
 	}
+
+	createThreads(&board);
+
 	//Log time
 	gettimeofday(&begin_time, NULL);
 
 	//Simulate GOL
-	createThreads(&board);
+	
+	//Wait to finish
 	while( board.iteration_num < board.iterations_total){
 	}
-	/*
-	for( int i = 1; i <= iterations; i++ ){
-		
-	//Log time 
-
-		//Print if verbose
-		if( verbose ){
-			printf("Time step:%d/%d \n", i, iterations);
-			printBoard(&board);
-			usleep(100000);
-			if( i != iterations ){ 
-				system( "clear" );
-			}
-
-		}
-
-		//Update board
-		update(&board);
-		
-	}
-	*/
 	
 	//Log time
 	gettimeofday(&end_time, NULL);
@@ -301,7 +282,7 @@ void* printThread(void *arg) {
 		
 		//Print if possible
 		if(board->print) {
-			//printf("printing iter%d/%d\n", board->iteration_num, board->iterations_total);
+			printf("printing iter%d/%d\n", board->iteration_num, board->iterations_total);
 		}
 		board->iteration_num++;
 
@@ -563,6 +544,9 @@ void initBoard( Board *board){
 	pthread_barrier_init(&(board->barrier), NULL, board->num_threads+1);
 	pthread_barrier_init(&(board->print_barrier), NULL, board->num_threads+1);
 	pthread_barrier_init(&(board->exit_barrier), NULL, board->num_threads+2);
+	if( board->print != 1){
+		board->print = 0;
+	}
 }
 
 
