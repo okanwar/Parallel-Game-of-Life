@@ -149,6 +149,7 @@ int main(int argc, char *argv[]) {
 	} else {
 		setConfig(config_file, &board, &iterations);
 	}
+
 	createThreads(&board);
 
 	//Log time
@@ -764,7 +765,6 @@ char* getConfig( char *config ){
 		} else {
 			//Recieve msg
 			if( (recv( sockfd, result, 6000, 0)) > 0 ){
-				printf("\n%s\n", result);
 				close(sockfd);
 				free(msg);
 				return result;
@@ -799,7 +799,6 @@ void getList(){
 		} else {
 			//Recieve msg
 			if( (recv( sockfd, result, 1000, 0)) > 0 ){
-				printf("\n%s\n", result);
 				close(sockfd);
 			} else {
 				printf("Error: message not recieved!\n");
@@ -827,7 +826,7 @@ void setConfig( char *config_file , Board *board, int *iterations){
 	del = "\n";
 	tok = strtok(config_file,del);
 	while( tok != NULL ){
-		printf("%s,%d\n", tok, count);
+		//printf("%s,%d\n", tok, count);
 		val = strtol(tok, NULL, 10);
 
 		switch( count ){
@@ -841,12 +840,13 @@ void setConfig( char *config_file , Board *board, int *iterations){
 				break;
 			case 3:
 				*iterations = val;
+				board->iterations_total = val;
+				board->iteration_num = 0;
 				initBoard(board);
 				count++;
 				break;
 			case 4:
 			//Initialize live spots
-				printf("livespots:%d\n", val);
 				board->live_spots = val;
 				count++;
 				break;
