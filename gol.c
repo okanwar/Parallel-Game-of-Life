@@ -22,6 +22,7 @@
 
 struct Board {
 	pthread_barrier_t barrier;
+	pthread_barrier_t exit_barrier;
 	pthread_barrier_t print_barrier;
 	int num_threads;
 	int iteration_num;
@@ -35,7 +36,7 @@ struct Board {
 	int *revive;
 	int *partitions;
 	pthread_t *tidAr;
-	pthread_t update_thread;
+	pthread_t print_thread;
 	int print;
 };
 
@@ -67,6 +68,8 @@ void* threadFunction (void *arg);
 void initPartitions(Board *board);
 void* printThread(void *arg);
 void createThreads(Board *board);
+int findTid(pthread_t tid, Board *board);
+void waitForThreads(Board *board);
 
 int main(int argc, char *argv[]) {
 
@@ -171,10 +174,12 @@ int main(int argc, char *argv[]) {
 	//Log time
 	gettimeofday(&end_time, NULL);
 
+
 	//Compute total time
 	timeval_subtract( &result_time , &end_time, &begin_time );
 	printf("Total time:%ld.%.6ld\n", result_time.tv_sec, result_time.tv_usec);
 
+	waitForThreads(&board);
 	//Free memory
 	freeBoard(&board);
 	if(n_flag){
@@ -182,7 +187,30 @@ int main(int argc, char *argv[]) {
 	}
 
 	printf("iterations%d/%d\n", board.iteration_num, board.iterations_total);
+
+
 	return 0;
+}
+
+void waitForThreads(Board *board){
+
+	for( int i = 0; i < board->num_threads;i++){
+		pthread_join( board->tidAr[i],NULL);
+	}
+
+	pthread_join( board->print_thread, NULL);
+
+}
+
+int findTid(pthread_t tid, Board *board){
+	for(int i = 0; i < board->num_threads; i++){
+		if( board->tidAr[i] == tid ){
+			return i;
+		}
+	}
+
+	printf("ERROR: TID not found!\n");
+	return -1;
 }
 
 /*
@@ -194,7 +222,7 @@ int main(int argc, char *argv[]) {
 void createThreads(Board *board){
 
 	//Create update thread
-	pthread_create( &board->update_thread, NULL, printThread, board);
+	pthread_create( &board->print_thread, NULL, printThread, board);
 	for( int i = 0; i < board->num_threads; i++){
 		pthread_create( &board->tidAr[i], NULL, threadFunction, board);	
 	}
@@ -258,6 +286,7 @@ void* printThread(void *arg) {
 		//Print has finished so wait
 		pthread_barrier_wait( &board->print_barrier );
 	}
+
 	return (void*) NULL;
 }
 
@@ -483,6 +512,7 @@ void initBoard( Board *board){
 	initPartitions(board);
 	pthread_barrier_init(&(board->barrier), NULL, board->num_threads+1);
 	pthread_barrier_init(&(board->print_barrier), NULL, board->num_threads+1);
+	pthread_barrier_init(&(board->exit_barrier), NULL, board->num_threads+2);
 }
 
 
