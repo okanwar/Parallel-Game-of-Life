@@ -112,8 +112,9 @@ int main(int argc, char *argv[]) {
 				printf("running from server file\n");
 				break;
 			case 't':
-				if( optarg == NULL ){
-					board.num_threads = 4;
+				if( strtol(optarg, NULL, 10) <= 0 ){
+					printf("Error: Invalid number of threads\n");
+					exit(1);
 				} else {
 					board.num_threads = strtol( optarg, NULL, 10);
 				}
@@ -148,7 +149,6 @@ int main(int argc, char *argv[]) {
 	} else {
 		setConfig(config_file, &board, &iterations);
 	}
-
 	createThreads(&board);
 
 	//Log time
@@ -538,6 +538,9 @@ int convertOneD( int r, int c, int cols){
  * @param board A reference to the board where the simulation is taking place
  */
 void initBoard( Board *board){
+	if( board->num_threads < 1){
+		board->num_threads = 4;
+	}
 	board->size = board->rows * board->cols;
 	board->arr = calloc( board->size, sizeof(int) );
 	board->die = calloc( board->size, sizeof(int) );
@@ -582,8 +585,9 @@ void readConfig(char *config_file, int *iterations, Board *board){
 	}
 
 	while( (ret = fscanf( cfg, "%s", scan)) > 0){
+		printf("%s\n", scan);
 		//Convert string to int
-		num = atoi(scan);
+		num = strtol(scan, NULL, 10);
 		//Use input from config
 		switch( count ){
 			
