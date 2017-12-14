@@ -282,7 +282,12 @@ void* printThread(void *arg) {
 		
 		//Print if possible
 		if(board->print) {
-			printf("printing iter%d/%d\n", board->iteration_num, board->iterations_total);
+			printf("Time step:%d/%d \n", board->iteration_num, board->iterations_total);
+			printBoard(board);
+			usleep(100000);
+			if ( board->iteration_num != board->iterations_total) {
+				system( "clear" );
+			}	
 		}
 		board->iteration_num++;
 
