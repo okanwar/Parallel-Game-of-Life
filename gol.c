@@ -78,6 +78,7 @@ void createThreads(Board *board);
 int findTid(pthread_t tid, Board *board);
 void waitForThreads(Board *board);
 void getBounds( int *start_index, int *end_index, int index, Board *board);
+void initStruct(Board *board);
 
 int main(int argc, char *argv[]) {
 
@@ -89,6 +90,7 @@ int main(int argc, char *argv[]) {
 	int n_flag = 0;
 	int c_flag = 0;
 	int l_flag = 0;
+	initStruct(&board);
 	
 	while (( ret = getopt( argc, argv, "vc:ln:t:")) != -1){
 
@@ -180,6 +182,11 @@ int main(int argc, char *argv[]) {
 
 
 	return 0;
+}
+
+void initStruct(Board *board){
+	board->num_threads = -1;
+	board->print =  0;
 }
 
 void waitForThreads(Board *board){
@@ -539,7 +546,7 @@ int convertOneD( int r, int c, int cols){
  * @param board A reference to the board where the simulation is taking place
  */
 void initBoard( Board *board){
-	if( board->num_threads < 1){
+	if( board->num_threads != -1){
 		board->num_threads = 4;
 	}
 	board->size = board->rows * board->cols;
@@ -553,9 +560,6 @@ void initBoard( Board *board){
 	pthread_barrier_init(&(board->barrier), NULL, board->num_threads+1);
 	pthread_barrier_init(&(board->print_barrier), NULL, board->num_threads+1);
 	pthread_barrier_init(&(board->exit_barrier), NULL, board->num_threads+2);
-	if( board->print != 1){
-		board->print = 0;
-	}
 }
 
 
@@ -586,7 +590,6 @@ void readConfig(char *config_file, int *iterations, Board *board){
 	}
 
 	while( (ret = fscanf( cfg, "%s", scan)) > 0){
-		printf("%s\n", scan);
 		//Convert string to int
 		num = strtol(scan, NULL, 10);
 		//Use input from config
