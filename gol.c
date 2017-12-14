@@ -152,6 +152,7 @@ int main(int argc, char *argv[]) {
 		setConfig(config_file, &board, &iterations);
 	}
 
+	//Create threads
 	createThreads(&board);
 
 	//Log time
