@@ -19,6 +19,12 @@
 #include <netdb.h>
 #include <pthread.h>
 
+struct ThreadIndex {
+	int start_twod;
+	int end_twod;
+};
+
+typedef struct ThreadIndex ThreadIndex;
 
 struct Board {
 	pthread_barrier_t barrier;
@@ -38,6 +44,7 @@ struct Board {
 	pthread_t *tidAr;
 	pthread_t print_thread;
 	int print;
+	ThreadIndex *threadIndices;
 };
 
 typedef struct Board Board;
@@ -48,7 +55,7 @@ typedef struct Board Board;
 void readConfig( char *config_file, int *iterations, Board *board);
 void initBoard( Board *board);
 void printBoard( Board *board );
-void update( Board *board);
+void update( Board *board, pthread_t tid);
 void timeval_subtract (struct timeval *result, struct timeval *end, struct timeval *start);
 int ruleOne(Board *board, int x);
 int search(Board *board, int index, int search_val);
@@ -70,6 +77,7 @@ void* printThread(void *arg);
 void createThreads(Board *board);
 int findTid(pthread_t tid, Board *board);
 void waitForThreads(Board *board);
+void getBounds( int *start_index, int *end_index, int index, Board *board);
 
 int main(int argc, char *argv[]) {
 
@@ -223,8 +231,28 @@ void createThreads(Board *board){
 
 	//Create update thread
 	pthread_create( &board->print_thread, NULL, printThread, board);
+	
+	//set up count for indices
+	int last = 0;
 	for( int i = 0; i < board->num_threads; i++){
 		pthread_create( &board->tidAr[i], NULL, threadFunction, board);	
+
+		//Start index is last + 1
+		board->threadIndices[i].start_twod = last;
+		//printf("Thread %d start 2D is %d\n", i,board->threadIndices[i].start_twod);
+
+		//Last will be set the same for now
+		board->threadIndices[i].end_twod = last;
+
+		//increment last index given partition count
+		int count = 0;
+		while( count < board->partitions[i]){
+			board->threadIndices[i].end_twod++;
+			last++;
+			count++;
+		}
+		board->threadIndices[i].end_twod--;
+		//printf("Thread %d end 2D is %d\n\n", i,board->threadIndices[i].end_twod);
 	}
 }
 
@@ -248,7 +276,8 @@ void* threadFunction(void *arg) {
 		pthread_barrier_wait( &board->print_barrier );
 
 		//Update board
-		update(board);
+		//printf("updating in iter:%d/%d\n", board->iteration_num, board->iterations_total);
+		update(board, pthread_self());
 	}
 	return (void*) NULL;
 }
@@ -272,7 +301,7 @@ void* printThread(void *arg) {
 		
 		//Print if possible
 		if(board->print) {
-			printf("printing2\n");
+			//printf("printing iter%d/%d\n", board->iteration_num, board->iterations_total);
 		}
 		board->iteration_num++;
 
@@ -348,6 +377,16 @@ int getCol(int index, int num_col){
 	return ( index - (row*num_col));
 }
 
+void getBounds( int *start_index, int *end_index, int index, Board *board){
+
+	//1D start index is cols * index of start in 2d
+	*start_index = (board->cols) * (board->threadIndices[index].start_twod);
+	
+	//1d end index is (cols * index of end in 2d) + (cols - 1)
+	*end_index = (board->cols *(board->threadIndices[index].end_twod)) + ((board->cols) - 1); 
+
+}
+
 /*
  * A function used to update the board, this is where the rules of the GOL will
  * be checked for
@@ -355,10 +394,20 @@ int getCol(int index, int num_col){
  * @param board A reference to the board where the game simulation is taking
  * place
  */
-void update(Board *board){
+void update(Board *board, pthread_t tid){
 	int neighbors = 0;
+
+	//Calculate starting and ending indexes
+	int index = -1;
+	if( (index = findTid(tid, board)) == -1 ){
+		printf("Error: tid not found\n");
+	}
+	int start_index, end_index;
+	getBounds(&start_index, &end_index, index, board);
+	//printf("Thread %d is updating [%d,%d]\n", index, start_index, end_index);
+
 	//iterate over all spots
-	for( int i = 0; i < board->size; i++ ){
+	for( int i = start_index; i <= end_index; i++ ){
 		//Check rules
 		neighbors = search(board, i, 1);
 		switch( board->arr[i] ){
@@ -509,6 +558,7 @@ void initBoard( Board *board){
 	board->revive = calloc( board->size, sizeof(int) );
 	board->partitions = calloc( board->num_threads, sizeof(int) );
 	board->tidAr = calloc( board->num_threads, sizeof(pthread_t));
+	board->threadIndices = calloc( board->num_threads, sizeof(ThreadIndex) );
 	initPartitions(board);
 	pthread_barrier_init(&(board->barrier), NULL, board->num_threads+1);
 	pthread_barrier_init(&(board->print_barrier), NULL, board->num_threads+1);
@@ -600,6 +650,7 @@ void freeBoard(Board *board){
 	free( board->die );
 	free( board->partitions);
 	free( board->tidAr);
+	free( board->threadIndices);
 }
 
 /*
