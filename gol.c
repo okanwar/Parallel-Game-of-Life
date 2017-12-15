@@ -44,6 +44,7 @@ struct Board {
 	pthread_t *tidAr;
 	pthread_t print_thread;
 	int print;
+	int part_info;
 	ThreadIndex *threadIndices;
 };
 
@@ -91,7 +92,7 @@ int main(int argc, char *argv[]) {
 	int l_flag = 0;
 	initStruct(&board);
 	
-	while (( ret = getopt( argc, argv, "vc:ln:t:")) != -1){
+	while (( ret = getopt( argc, argv, "pvc:ln:t:")) != -1){
 
 		switch(ret){
 		
@@ -119,6 +120,9 @@ int main(int argc, char *argv[]) {
 				} else {
 					board.num_threads = strtol( optarg, NULL, 10);
 				}
+				break;
+			case 'p':
+				board.part_info = 1;
 				break;
 			default:
 				printf("Invalid Use!\n");
@@ -191,6 +195,7 @@ int main(int argc, char *argv[]) {
 void initStruct(Board *board){
 	board->num_threads = 4;
 	board->print =  0;
+	board->part_info = 0;
 }
 
 /*
@@ -273,6 +278,15 @@ void createThreads(Board *board){
  */
 void* threadFunction(void *arg) {
 	struct Board *board = (struct Board*)arg;
+	int index = findTid( pthread_self(), board);
+
+	//Print partition info
+	if( board->part_info ){
+		fprintf( stdout, "tid  %d: rows:  %d:%d  (%d)\n", index, board->threadIndices[index].start_twod,
+			 board->threadIndices[index].end_twod, board->partitions[index]);
+		fflush(stdout);	
+	};
+	
 	while( board->iteration_num < board->iterations_total){
 
 		//Wait for all worker threads and print thread
@@ -284,6 +298,7 @@ void* threadFunction(void *arg) {
 		//Update board
 		//printf("updating in iter:%d/%d\n", board->iteration_num, board->iterations_total);
 		update(board, pthread_self());
+
 	}
 	return (void*) NULL;
 }
@@ -306,14 +321,14 @@ void* printThread(void *arg) {
 		pthread_barrier_wait( &board->barrier);
 		
 		//Print if possible
-		if(board->print) {
+		if(board->print ) {
 			printf("Time step:%d/%d \n", board->iteration_num+1, board->iterations_total);
 			printBoard(board);
 			usleep(100000);
 			if ( board->iteration_num != board->iterations_total) {
 				system( "clear" );
 			}	
-		}
+		} 
 		board->iteration_num++;
 
 		//Update board
@@ -592,7 +607,7 @@ void readConfig(char *config_file, int *iterations, Board *board){
 	FILE *cfg = NULL;
 	if( (cfg = fopen( config_file, "r")) == NULL ){
 		printf("Could not open file: %s\n", config_file);
-		return;
+		exit(1);
 	}
 
 	while( (ret = fscanf( cfg, "%s", scan)) > 0){
