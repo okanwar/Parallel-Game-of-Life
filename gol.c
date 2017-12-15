@@ -608,6 +608,10 @@ void readConfig(char *config_file, int *iterations, Board *board){
 			case 2:			//Set second input to cols
 				board->cols = num;
 				count++;
+				if( board->num_threads > board->cols ){
+					printf("ERROR: Number of threads greater than number of columns\n");
+					exit(1);
+				}
 				break;
 			case 3:			//Set third input to iterations
 				*iterations = num;
@@ -846,6 +850,10 @@ void setConfig( char *config_file , Board *board, int *iterations){
 			case 2:
 				board->cols = val;
 				count++;
+				if( board->num_threads > board->cols ){
+					printf("ERROR: Number of threads greater than number of columns\n");
+					exit(1);
+				}
 				break;
 			case 3:
 				*iterations = val;
