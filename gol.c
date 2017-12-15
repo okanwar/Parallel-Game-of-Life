@@ -140,7 +140,6 @@ int main(int argc, char *argv[]) {
 	}
 
 	//Read config file
-		//Check if config_file has been set
 	if( config_file == NULL ){
 		printf("Error: No config file!\n");
 		exit(1);
@@ -171,24 +170,35 @@ int main(int argc, char *argv[]) {
 	timeval_subtract( &result_time , &end_time, &begin_time );
 	printf("Total time:%ld.%.6ld\n", result_time.tv_sec, result_time.tv_usec);
 
+	//Wait for threads to exit
 	waitForThreads(&board);
+
 	//Free memory
 	freeBoard(&board);
 	if(n_flag){
 		free(config_file);
 	}
 
-	printf("iterations%d/%d\n", board.iteration_num, board.iterations_total);
-
 
 	return 0;
 }
 
+/*
+ * A function to initialize values in struct to defaults
+ *
+ * @param board A pointer to the struct where the board infromation is kept
+ */
 void initStruct(Board *board){
 	board->num_threads = 4;
 	board->print =  0;
 }
 
+/*
+ * A function to join worker threads to main thread
+ *
+ * @param board A pointer to the struct where all the board infromation is
+ * 	kept.
+ */
 void waitForThreads(Board *board){
 
 	for( int i = 0; i < board->num_threads;i++){
@@ -199,6 +209,13 @@ void waitForThreads(Board *board){
 
 }
 
+/*
+ * A function to search the array of thread ids for its index which is the
+ * threads logical id
+ *
+ * @param tid The threads actual id
+ * @param board A pointer to the struct containing the boards infromation
+ */
 int findTid(pthread_t tid, Board *board){
 	for(int i = 0; i < board->num_threads; i++){
 		if( board->tidAr[i] == tid ){
@@ -224,7 +241,7 @@ void createThreads(Board *board){
 	//set up count for indices
 	int last = 0;
 	for( int i = 0; i < board->num_threads; i++){
-		pthread_create( &board->tidAr[i], NULL, threadFunction, board);	
+		pthread_create ( &board->tidAr[i], NULL, threadFunction, board);
 
 		//Start index is last + 1
 		board->threadIndices[i].start_twod = last;
@@ -290,7 +307,7 @@ void* printThread(void *arg) {
 		
 		//Print if possible
 		if(board->print) {
-			printf("Time step:%d/%d \n", board->iteration_num, board->iterations_total);
+			printf("Time step:%d/%d \n", board->iteration_num+1, board->iterations_total);
 			printBoard(board);
 			usleep(100000);
 			if ( board->iteration_num != board->iterations_total) {
@@ -430,14 +447,6 @@ void update(Board *board, pthread_t tid){
 		};
 	}
 	
-	/*
-	//Update actual board with alive and dead
- 	updateBoard( board, 0);
-	updateBoard( board, 1);	
-	//Clear alive and dead boards
-	clearBoard( board->die, board->size );
-	clearBoard( board->revive, board->size );
-	*/
 }
 
 /*
@@ -546,9 +555,6 @@ int convertOneD( int r, int c, int cols){
  * @param board A reference to the board where the simulation is taking place
  */
 void initBoard( Board *board){
-	if( board->num_threads != 0){
-		board->num_threads = 4;
-	}
 	board->size = board->rows * board->cols;
 	board->arr = calloc( board->size, sizeof(int) );
 	board->die = calloc( board->size, sizeof(int) );
