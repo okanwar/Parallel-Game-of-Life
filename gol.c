@@ -44,6 +44,7 @@ struct Board {
 	pthread_t *tidAr;
 	pthread_t print_thread;
 	int print;
+	int part_info;
 	ThreadIndex *threadIndices;
 };
 
@@ -92,7 +93,7 @@ int main(int argc, char *argv[]) {
 	int l_flag = 0;
 	initStruct(&board);
 	
-	while (( ret = getopt( argc, argv, "vc:ln:t:")) != -1){
+	while (( ret = getopt( argc, argv, "pvc:ln:t:")) != -1){
 
 		switch(ret){
 		
@@ -120,6 +121,9 @@ int main(int argc, char *argv[]) {
 				} else {
 					board.num_threads = strtol( optarg, NULL, 10);
 				}
+				break;
+			case 'p':
+				board.part_info = 1;
 				break;
 			default:
 				printf("Invalid Use!\n");
@@ -188,6 +192,7 @@ int main(int argc, char *argv[]) {
 void initStruct(Board *board){
 	board->num_threads = -1;
 	board->print =  0;
+	board->part_info = 0;
 }
 
 void waitForThreads(Board *board){
@@ -257,6 +262,7 @@ void createThreads(Board *board){
  */
 void* threadFunction(void *arg) {
 	struct Board *board = (struct Board*)arg;
+	int index = findTid(pthread_self(), board);
 	while( board->iteration_num < board->iterations_total){
 
 		//Wait for all worker threads and print thread
@@ -267,7 +273,12 @@ void* threadFunction(void *arg) {
 
 		//Update board
 		//printf("updating in iter:%d/%d\n", board->iteration_num, board->iterations_total);
-		update(board, pthread_self());
+		update(board, index);
+
+		if(board->part_info){
+			printf( "tid  %d: rows: %d:%d (%d)\n", index, board->threadIndices[index].start_twod, 
+					board->threadIndices[index].end_twod, (board->partitions[index] * board->cols) );
+		}
 	}
 	return (void*) NULL;
 }
