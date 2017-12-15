@@ -254,7 +254,6 @@ void createThreads(Board *board){
 
 		//Start index is last + 1
 		board->threadIndices[i].start_twod = last;
-		//printf("Thread %d start 2D is %d\n", i,board->threadIndices[i].start_twod);
 
 		//Last will be set the same for now
 		board->threadIndices[i].end_twod = last;
@@ -267,7 +266,6 @@ void createThreads(Board *board){
 			count++;
 		}
 		board->threadIndices[i].end_twod--;
-		//printf("Thread %d end 2D is %d\n\n", i,board->threadIndices[i].end_twod);
 	}
 }
 
@@ -294,7 +292,6 @@ void* threadFunction(void *arg) {
 		pthread_barrier_wait( &board->print_barrier );
 
 		//Update board
-		//printf("updating in iter:%d/%d\n", board->iteration_num, board->iterations_total);
 		update(board, pthread_self());
 
 	}
@@ -434,7 +431,6 @@ void update(Board *board, pthread_t tid){
 	}
 	int start_index, end_index;
 	getBounds(&start_index, &end_index, index, board);
-	//printf("Thread %d is updating [%d,%d]\n", index, start_index, end_index);
 
 	//iterate over all spots
 	for( int i = start_index; i <= end_index; i++ ){
@@ -661,8 +657,6 @@ void readConfig(char *config_file, int *iterations, Board *board){
 				break;
 		}
 	}	
-
-
 }
 
 /*
@@ -721,7 +715,6 @@ void timeval_subtract (struct timeval *result, struct timeval *end, struct timev
 	// Compute the time remaining to wait.tv_usec is certainly positive.
 	result->tv_sec = end->tv_sec - start->tv_sec;
     result->tv_usec = end->tv_usec - start->tv_usec;
-	
 }
 
 /*
@@ -752,7 +745,6 @@ int open_clientfd( char *hostname, char *port){
 		   break; 	//Success
 		close(clientfd);	//Connect failed try next
 	}
-	
 	//Clean up
 	freeaddrinfo(listp);
 	if(!p){	//All connects failed
@@ -760,7 +752,6 @@ int open_clientfd( char *hostname, char *port){
 	} else {
 	   return clientfd;
 	}	   
-
 }
 /*
  * A function used to get the configuration settings from the server
@@ -838,10 +829,7 @@ void getList(){
 			}
 		}
 	}
-
-
 }
-
 
 /*
  * A function used to begin simulation with a string of config settings
@@ -887,21 +875,9 @@ void setConfig( char *config_file , Board *board, int *iterations){
 				count++;
 				break;
 			default:
-
 				x = strtol(&tok[0], NULL, 10);
 				y = strtol(&tok[2], NULL, 10);
 				board->arr[ (y*board->cols) + x ] = 1;
-
-				/*
-				//Alternate storing reads in x and y based on even or odd
-				if( count % 2 != 0 ){ //Odd count
-					x = val;	
-				} else {
-					y = val;
-					//once we have a full coord put it in, index++
-					printf("adding a live spot at (%d,%d)\n", x, y);
-					board->arr[ (y * board->cols) + x ] = 1;
-				} */
 				count++;
 				break;
 		};	
