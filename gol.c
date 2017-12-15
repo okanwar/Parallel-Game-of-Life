@@ -1,10 +1,14 @@
 /**
  * File: gol.c
  *
- * Starter code for COMP280 Project 6 ("Game of Life")
+ * This file contains code to run the game of life with multiple threads
+ * partitioning the game board.
  *
- * Replace this comment with your top-level comment with your name and a
- * description of this program.
+ * This file is part of COMP 280, Project 09.
+ *
+ * Authors:
+ * 1. Om Kanwar (okanwar@sandiego.edu)
+ * 2. Michael Dana (mdana@sandiego.edu)
  */
 
 #define _XOPEN_SOURCE 600
