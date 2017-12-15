@@ -82,7 +82,7 @@ void getBounds( int *start_index, int *end_index, int index, Board *board);
 void initStruct(Board *board);
 
 int main(int argc, char *argv[]) {
-
+printf("I'm here");
 	int ret;
 	char *config_file = NULL;
 	Board board;
@@ -275,10 +275,11 @@ void* threadFunction(void *arg) {
 		//printf("updating in iter:%d/%d\n", board->iteration_num, board->iterations_total);
 		update(board, index);
 
-		if(board->part_info){
-			printf( "tid  %d: rows: %d:%d (%d)\n", index, board->threadIndices[index].start_twod, 
-					board->threadIndices[index].end_twod, (board->partitions[index] * board->cols) );
-		}
+//		if(board->part_info){
+//			printf("I'm Here!");
+//			printf( "tid  %d: rows: %d:%d (%d)\n", index, board->threadIndices[index].start_twod, 
+//					board->threadIndices[index].end_twod, (board->partitions[index] * board->cols) );
+//		}
 	}
 	return (void*) NULL;
 }
