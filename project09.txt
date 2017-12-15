@@ -1,0 +1,15 @@
+COMP 280 - Project 09 (Parallel Game of Life)
+
+1. Author:
+	- Name:Michael Dana 
+	- Email: mdana@sandiego.edu
+	- Name: Om Kanwar
+	- Email: okanwar@sandiego.edu
+
+2. Total Hours Spent on Project: 6
+
+3. Did you attempt the advanced component? n/a
+
+4. Project Bucks Used: 0
+
+5. (Optional) Additional Comments:
