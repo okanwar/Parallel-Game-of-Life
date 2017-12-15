@@ -284,12 +284,6 @@ void* threadFunction(void *arg) {
 	struct Board *board = (struct Board*)arg;
 	int index = findTid( pthread_self(), board);
 
-	//Print partition info
-	if( board->part_info ){
-		fprintf( stdout, "tid  %d: rows:  %d:%d  (%d)\n", index, board->threadIndices[index].start_twod,
-			 board->threadIndices[index].end_twod, board->partitions[index]);
-		fflush(stdout);	
-	};
 	
 	while( board->iteration_num < board->iterations_total){
 
@@ -303,6 +297,12 @@ void* threadFunction(void *arg) {
 		//printf("updating in iter:%d/%d\n", board->iteration_num, board->iterations_total);
 		update(board, pthread_self());
 
+	}
+	//Print partition info
+	if( board->part_info ){
+		fprintf( stdout, "tid  %d: rows:  %d:%d  (%d)\n", index, board->threadIndices[index].start_twod,
+			 board->threadIndices[index].end_twod, board->partitions[index]);
+		fflush(stdout);	
 	}
 	return (void*) NULL;
 }
