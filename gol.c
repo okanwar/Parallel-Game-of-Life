@@ -81,7 +81,6 @@ void getBounds( int *start_index, int *end_index, int index, Board *board);
 void initStruct(Board *board);
 
 int main(int argc, char *argv[]) {
-
 	int ret;
 	char *config_file = NULL;
 	Board board;
@@ -186,7 +185,7 @@ int main(int argc, char *argv[]) {
 }
 
 void initStruct(Board *board){
-	board->num_threads = -1;
+	board->num_threads = 4;
 	board->print =  0;
 }
 
@@ -547,7 +546,7 @@ int convertOneD( int r, int c, int cols){
  * @param board A reference to the board where the simulation is taking place
  */
 void initBoard( Board *board){
-	if( board->num_threads != -1){
+	if( board->num_threads != 0){
 		board->num_threads = 4;
 	}
 	board->size = board->rows * board->cols;
